@@ -295,13 +295,21 @@ services:
     ports:
       - "3002:80"
 
+  # Login Frontend
+  login-frontend:
+    build:
+      context: ./frontends/login
+    container_name: vacd-login-frontend
+    ports:
+      - "3003:80"
+
   # Consumer (Patient Frontend)
   consumer-frontend:
     build:
       context: ./frontends/frontend-creator
     container_name: vacd-consumer-frontend
     ports:
-      - "8081:80"
+      - "3004:80"
 
 # All backing services join `vacd-net`, an external user-defined bridge that
 # the dev container also joins (via `--network=vacd-net` in

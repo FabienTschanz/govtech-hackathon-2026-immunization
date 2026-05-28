@@ -1,17 +1,15 @@
 // Screen 1 — Patient list with search & filter
 
 function PatientList({ onOpenPatient }) {
-  const { patients, vaccinations } = window.AppData;
+  const { patients } = window.AppData;
   const [query, setQuery] = useState("");
   const [sex, setSex] = useState("all"); // all | M | F
   const [ageBand, setAgeBand] = useState("all"); // all | child | adult | senior
-  const [sortBy, setSortBy] = useState("name"); // name | age | recent
+  const [sortBy, setSortBy] = useState("name"); // name | age
 
   const enriched = useMemo(() => patients.map((p) => {
-    const recs = vaccinations[p.id] || [];
-    const last = recs.length ? recs.slice().sort((a, b) => b.date.localeCompare(a.date))[0] : null;
-    return { ...p, age: calcAge(p.dob), vaxCount: recs.length, lastVax: last };
-  }), [patients, vaccinations]);
+    return { ...p, age: calcAge(p.dob) };
+  }), [patients]);
 
   const filtered = useMemo(() => {
     let list = enriched;
@@ -38,7 +36,6 @@ function PatientList({ onOpenPatient }) {
     }
     if (sortBy === "name") list = [...list].sort((a, b) => a.lastName.localeCompare(b.lastName));
     if (sortBy === "age") list = [...list].sort((a, b) => b.age - a.age);
-    if (sortBy === "recent") list = [...list].sort((a, b) => (b.lastVax?.date || "").localeCompare(a.lastVax?.date || ""));
     return list;
   }, [enriched, query, sex, ageBand, sortBy]);
 
@@ -90,11 +87,10 @@ function PatientList({ onOpenPatient }) {
         </div>
 
         <div className="sort-wrap-quiet">
-          <select className="sort-select-quiet" value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sortieren">
-            <option value="name">Sortiert: Nachname A–Z</option>
-            <option value="age">Sortiert: Alter</option>
-            <option value="recent">Sortiert: Letzte Impfung</option>
-          </select>
+            <select className="sort-select-quiet" value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sortieren">
+              <option value="name">Sortiert: Nachname A–Z</option>
+              <option value="age">Sortiert: Alter</option>
+            </select>
         </div>
       </div>
 
@@ -113,10 +109,9 @@ function PatientList({ onOpenPatient }) {
         <table className="patient-table">
           <thead>
             <tr>
-              <th style={{ width: "32%" }}>Patient:in</th>
-              <th style={{ width: "16%" }}>Geburtsdatum</th>
-              <th style={{ width: "32%" }}>Adresse</th>
-              <th style={{ width: "16%" }}>Impfungen</th>
+              <th style={{ width: "36%" }}>Patient:in</th>
+              <th style={{ width: "20%" }}>Geburtsdatum</th>
+              <th style={{ width: "40%" }}>Adresse</th>
               <th style={{ width: "4%" }}></th>
             </tr>
           </thead>
@@ -143,22 +138,13 @@ function PatientList({ onOpenPatient }) {
                   <div className="addr-line">{p.address}</div>
                 </td>
                 <td>
-                  <div className="vax-pill">
-                    <Icon.Syringe />
-                    <span><b>{p.vaxCount}</b> Einträge</span>
-                  </div>
-                  <div className="sub-line">
-                    {p.lastVax ? <>zuletzt {formatDate(p.lastVax.date, { short: true })}</> : "—"}
-                  </div>
-                </td>
-                <td>
                   <div className="row-cta"><Icon.Chevron /></div>
                 </td>
               </tr>
             )}
             {filtered.length === 0 &&
             <tr>
-                <td colSpan={5}>
+                <td colSpan={4}>
                   <div className="empty-state">
                     <div className="empty-icon"><Icon.Search /></div>
                     <div className="empty-title">Keine Patient:innen gefunden</div>

@@ -5,6 +5,8 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, HTTPException
 
+from seed import patient_resource
+
 FHIR_BASE = os.getenv(
     "FHIR_BASE_URL",
     "http://fhir-server-1:9111/ch-vacd-api-reference-server/fhir",
@@ -69,7 +71,7 @@ async def _ensure_patient(patient_id: str) -> bool:
         return False
     create = await fhir.put(
         f"{FHIR_BASE}/Patient/{patient_id}",
-        json={"resourceType": "Patient", "id": patient_id},
+        json=patient_resource(patient_id),
         headers={"Content-Type": "application/fhir+json"},
     )
     if create.status_code not in (200, 201):
@@ -91,16 +93,24 @@ async def _get_patient(patient_id: str) -> dict[str, Any]:
 
 
 async def _get_immunizations(patient_id: str) -> list[dict[str, Any]]:
+    # The CH VACD ImmunizationProvider ignores the `patient` search param and
+    # always returns the whole store, so we filter client-side on patient.reference.
     r = await fhir.get(
         f"{FHIR_BASE}/Immunization",
-        params={"patient": patient_id, "_count": "200"},
+        params={"patient": patient_id, "_count": "1000"},
     )
     if r.status_code != 200:
         raise HTTPException(
             status_code=502,
             detail=f"Immunization search failed ({r.status_code}): {r.text[:200]}",
         )
-    return [e["resource"] for e in (r.json().get("entry") or [])]
+    wanted = f"Patient/{patient_id}"
+    return [
+        res
+        for e in (r.json().get("entry") or [])
+        if (res := e.get("resource"))
+        and (res.get("patient") or {}).get("reference") == wanted
+    ]
 
 
 def _first_name(patient: dict[str, Any]) -> str:

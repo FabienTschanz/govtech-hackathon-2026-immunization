@@ -28,11 +28,6 @@ components:
       type: object
       description: Das vollständige Dossier eines Patienten einschliesslich seiner Impfungen
       properties:
-        id:
-          type: string
-          format: uuid
-          example: "a8b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d"
-          description: Eindeutige ID des Patienten
         firstName:
           type: string
           example: "Anna"
@@ -51,7 +46,6 @@ components:
             $ref: '#/components/schemas/VaccinationDto'
           description: Flache Liste aller Impfungen dieses Patienten
       required:
-        - id
         - firstName
         - lastName
         - age
@@ -62,10 +56,6 @@ components:
       type: object
       description: Repräsentiert einen einzelnen Impfeintrag
       properties:
-        id:
-          type: string
-          format: uuid
-          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         targetDisease:
           type: string
           example: "Influenza (saisonal)"
@@ -96,7 +86,6 @@ components:
           type: string
           example: "Oberarm links"
       required:
-        - id
         - targetDisease
         - vaccineName
         - vaccinationDate

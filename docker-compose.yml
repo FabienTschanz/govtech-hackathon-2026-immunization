@@ -25,6 +25,8 @@ services:
       context: ./services/bff-producer
     image: vacd/bff-producer-server:dev
     container_name: vacd-bff-producer-server
+    environment:
+      FHIR_BASE_URL: "http://fhir-server-1:9111/ch-vacd-api-reference-server/fhir"
     ports:
       - "9112:9112"
     healthcheck:
@@ -287,14 +289,6 @@ services:
       start_period: 5s
       retries: 6
 
-  # Creator (Arzt Frontend)
-  creator-frontend:
-    build:
-      context: ./frontends/frontend-producer
-    container_name: vacd-creator-frontend
-    ports:
-      - "3002:80"
-
   # Login Frontend
   login-frontend:
     build:
@@ -303,10 +297,18 @@ services:
     ports:
       - "3003:80"
 
+  # Producer (Arzt Frontend)
+  producer-frontend:
+    build:
+      context: ./frontends/frontend-producer
+    container_name: vacd-producer-frontend
+    ports:
+      - "3002:80"
+
   # Consumer (Patient Frontend)
   consumer-frontend:
     build:
-      context: ./frontends/frontend-creator
+      context: ./frontends/frontend-consumer
     container_name: vacd-consumer-frontend
     ports:
       - "3004:80"

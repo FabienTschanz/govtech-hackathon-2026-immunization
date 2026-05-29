@@ -3,7 +3,7 @@ package ch.bff.producer.provider.models;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record ImmunizationDto(
+public record VaccinationDto(
         UUID id,
         String vaccineName,
         String doseSequence,
@@ -12,10 +12,11 @@ public record ImmunizationDto(
         String lotNumber,
         String administrationRoute,
         String siteOfAdministration,
-        PractitionerDto practitioner
+        PractitionerDto practitioner,
+        String reason
 ) {
     // Kompakter Konstruktor für Pflichtfeld- und Formatvalidierungen
-    public ImmunizationDto {
+    public VaccinationDto {
         if (id == null) {
             throw new IllegalArgumentException("ID darf nicht null sein");
         }

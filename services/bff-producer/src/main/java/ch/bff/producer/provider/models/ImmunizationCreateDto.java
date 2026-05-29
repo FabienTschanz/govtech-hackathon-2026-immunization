@@ -11,7 +11,7 @@ public record ImmunizationCreateDto(
         RouteOfAdministration routeOfAdministration,
         AdministeredDose administeredDose,
         String siteOfAdministration,
-        String reason,
+        VaccinationReason vaccinationReason,
         int doseNumber,
         Integer seriesDoses, // Integer statt int, da es für Booster leer (null) sein darf
         boolean adverseReactionObserved
@@ -25,7 +25,7 @@ public record ImmunizationCreateDto(
         if (routeOfAdministration == null) throw new IllegalArgumentException("Applikationsweg ist ein Pflichtfeld");
         if (administeredDose == null) throw new IllegalArgumentException("Verabreichte Menge ist ein Pflichtfeld");
         if (siteOfAdministration == null || siteOfAdministration.isBlank()) throw new IllegalArgumentException("Applikationsort ist ein Pflichtfeld");
-        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Impfgrund ist ein Pflichtfeld");
+        if (vaccinationReason == null || vaccinationReason.code() == null || vaccinationReason.code().isBlank()) throw new IllegalArgumentException("Impfgrund ist ein Pflichtfeld");
         if (doseNumber < 1) throw new IllegalArgumentException("Dosisnummer muss mindestens 1 sein");
     }
 }

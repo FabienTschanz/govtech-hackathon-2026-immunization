@@ -3,6 +3,7 @@ package ch.bff.producer.provider;
 import ch.bff.producer.VacctinationsReadService;
 import ch.bff.producer.provider.models.PractitionerDto;
 import ch.bff.producer.provider.models.VaccinationDto;
+import ch.bff.producer.provider.models.VaccinationReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,7 +49,7 @@ public class VaccinationProvider {
                         "s.c.",
                         "Oberarm links",
                         new PractitionerDto("Dr. S. Müller", "7601000233456"),
-                        "Grundimmunisierung"
+                        new VaccinationReason("223366009", "Grundimmunisierung", null)
                 ),
 
                 // 2. Impfung (Folgeimpfung MMR)
@@ -62,7 +63,7 @@ public class VaccinationProvider {
                         "s.c.",
                         "Oberarm rechts",
                         new PractitionerDto("Dr. S. Müller", "7601000233456"),
-                        "Auffrischimpfung"
+                        new VaccinationReason("171257003", "Auffrischimpfung", null)
                 ),
 
                 // 3. Impfung (Starrkrampf / DTP)
@@ -76,7 +77,7 @@ public class VaccinationProvider {
                         "i.m.",
                         "Oberschenkel links",
                         new PractitionerDto("Dr. med. A. Pfister", "7601003445566"),
-                        "Auffrischimpfung"
+                        new VaccinationReason("171257003", "Auffrischimpfung", null)
                 ),
 
                 // 4. Impfung (FSME / Zecken)
@@ -90,7 +91,7 @@ public class VaccinationProvider {
                         "i.m.",
                         "Oberarm links",
                         new PractitionerDto("Dr. S. Müller", "7601000233456"),
-                        "Grundimmunisierung"
+                        new VaccinationReason("223366009", "Grundimmunisierung", null)
                 ),
 
                 // 5. Impfung (Grippe)
@@ -104,7 +105,7 @@ public class VaccinationProvider {
                         "i.m.",
                         "Oberarm rechts",
                         new PractitionerDto("Apotheke am Bahnhof", "7601009998877"),
-                        "saisonale Influenza"
+                        new VaccinationReason("386472008", "saisonale Influenza", null)
                 )
         );
     }

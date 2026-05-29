@@ -2,6 +2,7 @@ package ch.bff.producer.mapstruct;
 
 import ch.bff.producer.provider.models.PractitionerDto;
 import ch.bff.producer.provider.models.VaccinationDto;
+import ch.bff.producer.provider.models.VaccinationReason;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Immunization;
@@ -26,7 +27,7 @@ public interface VaccinationsMapper {
     @Mapping(target = "administrationRoute", source = "route", qualifiedByName = "conceptDisplay")
     @Mapping(target = "siteOfAdministration", source = "site", qualifiedByName = "conceptDisplay")
     @Mapping(target = "practitioner", expression = "java(mapPractitioner(immunization))")
-    @Mapping(target = "reason", expression = "java(reasonText(immunization))")
+    @Mapping(target = "vaccinationReason", expression = "java(mapVaccinationReason(immunization))")
     VaccinationDto toVaccinationDto(Immunization immunization);
 
     @Named("vaccineName")
@@ -81,12 +82,16 @@ public interface VaccinationsMapper {
         return new PractitionerDto(name, gln);
     }
 
-    default String reasonText(Immunization immunization) {
+    default VaccinationReason mapVaccinationReason(Immunization immunization) {
         var reasonCodes = immunization.getReasonCode();
         if (reasonCodes == null || reasonCodes.isEmpty()) return null;
         var reason = reasonCodes.get(0);
-        if (reason.hasText()) return reason.getText();
-        if (reason.hasCoding()) return reason.getCodingFirstRep().getDisplay();
-        return null;
+        String code = null;
+        String display = null;
+        if (reason.hasCoding()) {
+            code = reason.getCodingFirstRep().getCode();
+            display = reason.getCodingFirstRep().getDisplay();
+        }
+        return new VaccinationReason(code, display != null ? display : reason.getText(), null);
     }
 }

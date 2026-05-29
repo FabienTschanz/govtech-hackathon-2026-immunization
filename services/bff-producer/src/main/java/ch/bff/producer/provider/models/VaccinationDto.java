@@ -13,7 +13,7 @@ public record VaccinationDto(
         String administrationRoute,
         String siteOfAdministration,
         PractitionerDto practitioner,
-        String reason
+        VaccinationReason vaccinationReason
 ) {
     // Kompakter Konstruktor für Pflichtfeld- und Formatvalidierungen
     public VaccinationDto {

@@ -19,10 +19,10 @@ PATIENTS: dict[str, dict[str, Any]] = {
         "birthDate": "1984-07-22",
     },
     "10002": {
-        "firstName": "Markus",
-        "lastName": "Weber",
+        "firstName": "Simon",
+        "lastName": "Koller",
         "gender": "male",
-        "birthDate": "1968-03-15",
+        "birthDate": "1998-03-15",
     },
     "10003": {
         "firstName": "Lara",

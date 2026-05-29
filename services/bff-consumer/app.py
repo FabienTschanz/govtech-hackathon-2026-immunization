@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from typing import Any
 
 import httpx
@@ -9,6 +10,13 @@ FHIR_BASE = os.getenv(
     "http://fhir-server-1:9111/ch-vacd-api-reference-server/fhir",
 )
 TIMEOUT = float(os.getenv("FHIR_TIMEOUT_SECONDS", "10"))
+
+GENDER_DE = {
+    "male": "männlich",
+    "female": "weiblich",
+    "other": "andere",
+    "unknown": "unbekannt",
+}
 
 app = FastAPI(title="CH VACD Consumer BFF", version="0.1.0")
 fhir = httpx.AsyncClient(
@@ -26,26 +34,19 @@ async def healthz() -> dict[str, Any]:
         return {"ok": False, "error": str(e)}
 
 
-@app.get("/patients/{patient_id}/vaccinations")
-async def list_vaccinations(patient_id: str) -> dict[str, Any]:
-    patient_created = await _ensure_patient(patient_id)
-
-    r = await fhir.get(
-        f"{FHIR_BASE}/Immunization",
-        params={"patient": patient_id, "_count": "200"},
-    )
-    if r.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"FHIR server returned {r.status_code}: {r.text[:200]}",
-        )
-    bundle = r.json()
-    entries = bundle.get("entry") or []
+@app.get("/patients/{patient_id}")
+async def get_dossier(patient_id: str) -> dict[str, Any]:
+    await _ensure_patient(patient_id)
+    patient = await _get_patient(patient_id)
+    immunizations = await _get_immunizations(patient_id)
     return {
-        "patientId": patient_id,
-        "patientCreated": patient_created,
-        "count": len(entries),
-        "vaccinations": [_to_view(e["resource"]) for e in entries],
+        "firstName": _first_name(patient),
+        "lastName": _last_name(patient),
+        "age": _calc_age(patient.get("birthDate")) or 0,
+        "gender": GENDER_DE.get(patient.get("gender") or "unknown", "unbekannt"),
+        "vaccinations": [
+            v for imm in immunizations for v in _expand_vaccinations(imm)
+        ],
     }
 
 
@@ -79,28 +80,106 @@ async def _ensure_patient(patient_id: str) -> bool:
     return True
 
 
-def _to_view(imm: dict[str, Any]) -> dict[str, Any]:
-    coding = ((imm.get("vaccineCode") or {}).get("coding") or [{}])[0]
+async def _get_patient(patient_id: str) -> dict[str, Any]:
+    r = await fhir.get(f"{FHIR_BASE}/Patient/{patient_id}")
+    if r.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Patient GET failed ({r.status_code}): {r.text[:200]}",
+        )
+    return r.json()
+
+
+async def _get_immunizations(patient_id: str) -> list[dict[str, Any]]:
+    r = await fhir.get(
+        f"{FHIR_BASE}/Immunization",
+        params={"patient": patient_id, "_count": "200"},
+    )
+    if r.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Immunization search failed ({r.status_code}): {r.text[:200]}",
+        )
+    return [e["resource"] for e in (r.json().get("entry") or [])]
+
+
+def _first_name(patient: dict[str, Any]) -> str:
+    names = patient.get("name") or []
+    if not names:
+        return ""
+    given = names[0].get("given") or []
+    return given[0] if given else ""
+
+
+def _last_name(patient: dict[str, Any]) -> str:
+    names = patient.get("name") or []
+    if not names:
+        return ""
+    return names[0].get("family") or ""
+
+
+def _calc_age(birth_date_str: str | None) -> int | None:
+    # FHIR `date` may be YYYY, YYYY-MM, or YYYY-MM-DD.
+    if not birth_date_str:
+        return None
+    parts = birth_date_str.split("-")
+    try:
+        y = int(parts[0])
+        m = int(parts[1]) if len(parts) > 1 else 1
+        d = int(parts[2]) if len(parts) > 2 else 1
+    except ValueError:
+        return None
+    today = date.today()
+    return max(today.year - y - ((today.month, today.day) < (m, d)), 0)
+
+
+def _expand_vaccinations(imm: dict[str, Any]) -> list[dict[str, Any]]:
+    vaccine = imm.get("vaccineCode") or {}
+    vaccine_coding = (vaccine.get("coding") or [{}])[0]
+    vaccine_name = vaccine_coding.get("display") or vaccine.get("text") or ""
+
     proto = (imm.get("protocolApplied") or [{}])[0]
-    target = [
-        ((td.get("coding") or [{}])[0]).get("display")
-        for td in (proto.get("targetDisease") or [])
+    dose_num = proto.get("doseNumberPositiveInt") or proto.get("doseNumberString")
+    series = proto.get("seriesDosesPositiveInt") or proto.get("seriesDosesString")
+    if dose_num is not None and series is not None:
+        dose_sequence = f"{dose_num}/{series}"
+    elif dose_num is not None:
+        dose_sequence = str(dose_num)
+    else:
+        dose_sequence = ""
+
+    vaccination_date = (imm.get("occurrenceDateTime") or "")[:10]
+    manufacturer = (imm.get("manufacturer") or {}).get("display") or ""
+    lot_number = imm.get("lotNumber") or ""
+
+    route = imm.get("route") or {}
+    route_coding = (route.get("coding") or [{}])[0]
+    administration_route = route_coding.get("display") or route.get("text") or ""
+
+    site = imm.get("site") or {}
+    site_coding = (site.get("coding") or [{}])[0]
+    site_of_administration = site_coding.get("display") or site.get("text") or ""
+
+    target_diseases: list[str] = []
+    for td in proto.get("targetDisease") or []:
+        coding = (td.get("coding") or [{}])[0]
+        display = coding.get("display") or td.get("text")
+        if display:
+            target_diseases.append(display)
+    if not target_diseases:
+        target_diseases = [vaccine_name or ""]
+
+    return [
+        {
+            "targetDisease": disease,
+            "vaccineName": vaccine_name,
+            "season": "",
+            "doseSequence": dose_sequence,
+            "vaccinationDate": vaccination_date,
+            "manufacturer": manufacturer,
+            "lotNumber": lot_number,
+            "administrationRoute": administration_route,
+            "siteOfAdministration": site_of_administration,
+        }
+        for disease in target_diseases
     ]
-    performer = [
-        p.get("actor", {}).get("reference") for p in (imm.get("performer") or [])
-    ]
-    return {
-        "id": imm.get("id"),
-        "status": imm.get("status"),
-        "date": imm.get("occurrenceDateTime"),
-        "vaccine": {
-            "code": coding.get("code"),
-            "system": coding.get("system"),
-            "display": coding.get("display"),
-        },
-        "lotNumber": imm.get("lotNumber"),
-        "doseNumber": proto.get("doseNumberPositiveInt")
-        or proto.get("doseNumberString"),
-        "targetDiseases": [d for d in target if d],
-        "performerRefs": [p for p in performer if p],
-    }

@@ -36,5 +36,4 @@ echo "======================="
 echo "Aktuelle Patienten ..."
 
 docker exec vacd-fhir-db psql -U vacduser -d chvacdapirefserver \
-        -c "SELECT id, resource_id, json FROM fhir_resource WHERE resource_type='Patient';"
-#        -c "SELECT id, resource_id, json FROM fhir_resource WHERE resource_type='Patient' and resource_id='$login';"
+        -c "SELECT * FROM fhir_resource_audit ORDER BY id DESC LIMIT 5;"

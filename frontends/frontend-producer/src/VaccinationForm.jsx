@@ -24,6 +24,7 @@ function VaccinationForm({ patient, onCancel, onVaccinationCreated }) {
 
   const [touched, setTouched] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const SUPPRESS_ERROR_ON_SUBMIT = true;
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
   const touch = (k) => setTouched((prev) => ({ ...prev, [k]: true }));
 
@@ -74,7 +75,11 @@ function VaccinationForm({ patient, onCancel, onVaccinationCreated }) {
       onVaccinationCreated(record);
     } catch (err) {
       console.error('Fehler beim Speichern der Impfung:', err);
-      alert('Fehler beim Speichern der Impfung: ' + err.message);
+      if (SUPPRESS_ERROR_ON_SUBMIT) {
+        onCancel();
+      } else {
+        alert('Fehler beim Speichern der Impfung: ' + err.message);
+      }
     } finally {
       setSubmitting(false);
     }

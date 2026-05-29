@@ -3,9 +3,14 @@ from datetime import date
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 from seed import patient_resource
+from vaccinations_read_service import (
+    FhirClient as VaccinationsFhirClient,
+    VaccinationDto,
+    VaccinationsReadService,
+)
 
 FHIR_BASE = os.getenv(
     "FHIR_BASE_URL",
@@ -25,6 +30,7 @@ fhir = httpx.AsyncClient(
     timeout=TIMEOUT,
     headers={"Accept": "application/fhir+json"},
 )
+vaccinations_service = VaccinationsReadService(VaccinationsFhirClient(fhir, FHIR_BASE))
 
 
 @app.get("/healthz")
@@ -34,6 +40,14 @@ async def healthz() -> dict[str, Any]:
         return {"ok": r.status_code == 200, "fhirStatus": r.status_code}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@app.get("/vaccinations/")
+async def get_vaccinations(patient_id: str = Query(..., alias="personId")) -> list[VaccinationDto]:
+    try:
+        return await vaccinations_service.get_vaccination_list(patient_id)
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"FHIR error: {e}") from e
 
 
 @app.get("/patients/{patient_id}")

@@ -315,6 +315,9 @@ services:
     build:
       context: ./frontends/frontend-consumer
     container_name: vacd-consumer-frontend
+    depends_on:
+      bff-consumer:
+        condition: service_healthy
     ports:
       - "3004:80"
 
